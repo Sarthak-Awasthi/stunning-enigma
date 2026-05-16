@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT p.filename, pp.enabled\n        FROM profile_plugins pp\n        JOIN plugins p ON p.id = pp.plugin_id\n        WHERE pp.profile_id = ?1\n        ORDER BY pp.load_index\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "filename",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "enabled",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "98d361c4712fd7617a06e7a18cce4562772b8a83b31d8108ca8c929019459d43"
+}

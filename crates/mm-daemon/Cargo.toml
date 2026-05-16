@@ -4,16 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-domain-core        = { path = "../domain-core" }
-storage-sqlite     = { path = "../storage-sqlite" }
-game-detect        = { path = "../game-detect" }
-runner-manager     = { path = "../runner-manager" }
-mod-ingest         = { path = "../mod-ingest" }
-deploy-engine      = { path = "../deploy-engine" }
-ipc-api            = { path = "../ipc-api" }
-plugins-engine     = { path = "../plugins-engine" }
-loot-engine        = { path = "../loot-engine" }
-launch-engine      = { path = "../launch-engine" }
+domain-core        = { workspace = true }
+storage-sqlite     = { workspace = true }
+game-detect        = { workspace = true }
+runner-manager     = { workspace = true }
+mod-ingest         = { workspace = true }
+deploy-engine      = { workspace = true }
+ipc-api            = { workspace = true }
+plugins-engine     = { workspace = true }
+loot-engine        = { workspace = true }
+launch-engine      = { workspace = true }
 tokio              = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }

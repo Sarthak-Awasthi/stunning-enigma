@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO profile_plugins (profile_id, plugin_id, enabled, load_index)\n                 VALUES (?1, ?2, 1, ?3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "0ae35e37a3586abb8178d3e807489c1a90055678b284a62f0910a287a32935cb"
+}

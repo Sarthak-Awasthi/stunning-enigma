@@ -1,5 +1,5 @@
-use std::path::Path;
 use anyhow::Context;
+use std::path::Path;
 use tracing::{info, warn};
 
 use domain_core::entities::SymlinkEntry;
@@ -8,12 +8,9 @@ use storage_sqlite::Db;
 use crate::plan::DeployPlan;
 
 /// Apply a deploy plan: create symlinks and write a manifest for rollback.
-pub async fn apply_plan(
-    plan: DeployPlan,
-    db: &Db,
-) -> anyhow::Result<i64> {
-    let symlink_json = serde_json::to_string(&plan.entries)
-        .context("failed to serialise symlink plan")?;
+pub async fn apply_plan(plan: DeployPlan, db: &Db) -> anyhow::Result<i64> {
+    let symlink_json =
+        serde_json::to_string(&plan.entries).context("failed to serialise symlink plan")?;
 
     // Write manifest first — if symlinking fails we still have a record
     let manifest_id = sqlx::query!(
@@ -56,19 +53,14 @@ pub async fn apply_plan(
 
         tokio::fs::symlink(&entry.source, target)
             .await
-            .with_context(|| format!(
-                "failed to symlink {} -> {}", entry.source, entry.target
-            ))?;
+            .with_context(|| format!("failed to symlink {} -> {}", entry.source, entry.target))?;
 
         created += 1;
     }
 
     info!(
         profile_id = plan.profile_id,
-        manifest_id,
-        created,
-        skipped,
-        "deploy complete"
+        manifest_id, created, skipped, "deploy complete"
     );
 
     Ok(manifest_id)
@@ -84,8 +76,8 @@ pub async fn rollback(manifest_id: i64, db: &Db) -> anyhow::Result<()> {
     .await
     .context("manifest not found")?;
 
-    let entries: Vec<SymlinkEntry> = serde_json::from_str(&row.symlink_plan)
-        .context("failed to parse manifest")?;
+    let entries: Vec<SymlinkEntry> =
+        serde_json::from_str(&row.symlink_plan).context("failed to parse manifest")?;
 
     for entry in &entries {
         let target = Path::new(&entry.target);

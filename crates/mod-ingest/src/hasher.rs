@@ -1,6 +1,6 @@
-use std::path::Path;
 use anyhow::Context;
 use sha2::{Digest, Sha256};
+use std::path::Path;
 
 /// Compute SHA-256 of a file and return it as a lowercase hex string.
 pub async fn sha256_file(path: &Path) -> anyhow::Result<String> {

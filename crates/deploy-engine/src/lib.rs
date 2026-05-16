@@ -1,6 +1,6 @@
+pub mod apply;
 pub mod conflict;
 pub mod plan;
-pub mod apply;
 
-pub use plan::{build_plan, DeployPlan};
 pub use apply::{apply_plan, rollback};
+pub use plan::{DeployPlan, build_plan};

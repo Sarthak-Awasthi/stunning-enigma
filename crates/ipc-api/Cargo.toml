@@ -7,4 +7,4 @@ edition = "2024"
 serde       = { workspace = true }
 serde_json  = { workspace = true }
 thiserror   = { workspace = true }
-game-detect = { path = "../game-detect" }
+game-detect = { workspace = true }

@@ -14,11 +14,7 @@ impl<'a> ProfileRepo<'a> {
     }
 
     /// Create a new profile for an instance. Returns the new profile's id.
-    pub async fn create(
-        &self,
-        instance_id: i64,
-        name: &str,
-    ) -> anyhow::Result<i64> {
+    pub async fn create(&self, instance_id: i64, name: &str) -> anyhow::Result<i64> {
         let id = sqlx::query!(
             r#"
             INSERT INTO profiles (instance_id, name)
@@ -54,11 +50,11 @@ impl<'a> ProfileRepo<'a> {
         Ok(rows
             .into_iter()
             .map(|r| Profile {
-                id:               r.id.expect("id is always set for persisted rows"),
-                instance_id:      r.instance_id,
-                name:             r.name,
+                id: r.id.expect("id is always set for persisted rows"),
+                instance_id: r.instance_id,
+                name: r.name,
                 pinned_runner_id: r.pinned_runner_id,
-                auto_deploy:      r.auto_deploy != 0,
+                auto_deploy: r.auto_deploy != 0,
             })
             .collect())
     }

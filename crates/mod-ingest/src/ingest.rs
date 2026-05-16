@@ -1,18 +1,18 @@
-use std::path::{Path};
+use std::path::Path;
 
 use anyhow::Context;
 use tracing::info;
 
 use storage_sqlite::Db;
 
-use crate::{archive, hasher};
+use crate::{archive, fomod, hasher};
 
 #[derive(Debug)]
 pub struct IngestResult {
-    pub mod_id:      i64,
-    pub name:        String,
+    pub mod_id: i64,
+    pub name: String,
     pub source_hash: String,
-    pub file_count:  usize,
+    pub file_count: usize,
 }
 
 /// Full pipeline: hash → dedup check → extract → index → record in DB.
@@ -26,26 +26,24 @@ pub async fn ingest_mod(
     info!(hash = %hash, "archive hashed");
 
     // 2. Check if already installed
-    let existing = sqlx::query!(
-        "SELECT id, name FROM mods WHERE source_hash = ?1",
-        hash
-    )
-    .fetch_optional(&db.pool)
-    .await
-    .context("dedup check failed")?;
+    let existing = sqlx::query!("SELECT id, name FROM mods WHERE source_hash = ?1", hash)
+        .fetch_optional(&db.pool)
+        .await
+        .context("dedup check failed")?;
 
     if let Some(row) = existing {
-        info!(mod_id = row.id, "mod already installed, skipping extraction");
-        let file_count = sqlx::query_scalar!(
-            "SELECT COUNT(*) FROM file_index WHERE mod_id = ?1",
-            row.id
-        )
-        .fetch_one(&db.pool)
-        .await? as usize;
+        info!(
+            mod_id = row.id,
+            "mod already installed, skipping extraction"
+        );
+        let file_count =
+            sqlx::query_scalar!("SELECT COUNT(*) FROM file_index WHERE mod_id = ?1", row.id)
+                .fetch_one(&db.pool)
+                .await? as usize;
 
         return Ok(IngestResult {
             mod_id: row.id.expect("id is always set for persisted rows"),
-            name:        row.name,
+            name: row.name,
             source_hash: hash,
             file_count,
         });
@@ -71,6 +69,14 @@ pub async fn ingest_mod(
     .await
     .context("extraction task panicked")?
     .context("extraction failed")?;
+
+    let files = tokio::task::spawn_blocking({
+        let ip = install_path.clone();
+        move || fomod::apply_if_present(&ip, files)
+    })
+    .await
+    .context("FOMOD processing task panicked")?
+    .context("FOMOD processing failed")?;
 
     // 5. Record mod in DB
     let mod_id = sqlx::query!(

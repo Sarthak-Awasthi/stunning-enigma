@@ -29,3 +29,16 @@ hex                = "0.4"
 sevenz-rust2       = "0.21"
 zip                = "8"
 walkdir            = "2"
+fomod-oxide        = "0.1.0"
+libloot            = "0.29.5"
+
+domain-core        = { path = "crates/domain-core" }
+storage-sqlite     = { path = "crates/storage-sqlite" }
+game-detect        = { path = "crates/game-detect" }
+runner-manager     = { path = "crates/runner-manager" }
+mod-ingest         = { path = "crates/mod-ingest" }
+deploy-engine      = { path = "crates/deploy-engine" }
+plugins-engine     = { path = "crates/plugins-engine" }
+loot-engine        = { path = "crates/loot-engine" }
+launch-engine      = { path = "crates/launch-engine" }
+ipc-api            = { path = "crates/ipc-api" }

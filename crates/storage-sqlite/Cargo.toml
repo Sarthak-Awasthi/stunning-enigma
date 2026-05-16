@@ -8,4 +8,4 @@ sqlx        = { workspace = true }
 anyhow      = { workspace = true }
 thiserror   = { workspace = true }
 tracing     = { workspace = true }
-domain-core = { path = "../domain-core" }
+domain-core = { workspace = true }

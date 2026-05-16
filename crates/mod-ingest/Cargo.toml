@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-domain-core    = { path = "../domain-core" }
-storage-sqlite = { path = "../storage-sqlite" }
+domain-core    = { workspace = true }
+storage-sqlite = { workspace = true }
 anyhow         = { workspace = true }
 thiserror      = { workspace = true }
 tracing        = { workspace = true }
@@ -18,3 +18,4 @@ sevenz-rust2   = { workspace = true }
 zip            = { workspace = true }
 walkdir        = { workspace = true }
 sqlx           = { workspace = true }
+fomod-oxide    = { workspace = true }

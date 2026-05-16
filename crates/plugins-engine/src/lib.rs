@@ -1,14 +1,7 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+pub mod load_order;
+pub mod parser;
+pub mod validate;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use load_order::{sync_plugins, write_load_order};
+pub use parser::{PluginHeader, parse_plugin_header};
+pub use validate::validate_masters;

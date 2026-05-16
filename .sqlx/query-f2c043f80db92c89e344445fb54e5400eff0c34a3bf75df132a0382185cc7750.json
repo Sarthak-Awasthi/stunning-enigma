@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COALESCE(MAX(load_index), -1) + 1 FROM profile_plugins WHERE profile_id=?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "COALESCE(MAX(load_index), -1) + 1",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f2c043f80db92c89e344445fb54e5400eff0c34a3bf75df132a0382185cc7750"
+}

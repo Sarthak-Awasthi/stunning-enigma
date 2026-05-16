@@ -1,0 +1,2 @@
+ALTER TABLE plugins
+ADD COLUMN masters_json TEXT NOT NULL DEFAULT '[]';

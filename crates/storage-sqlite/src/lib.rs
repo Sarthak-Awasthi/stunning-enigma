@@ -1,4 +1,6 @@
+pub mod instance_repo;
 pub mod migrations;
+pub mod profile_mod_repo;
 pub mod profile_repo;
 
 use anyhow::Context;
@@ -21,7 +23,7 @@ impl Db {
         let options = SqliteConnectOptions::from_str(&url)
             .context("invalid database URL")?
             .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal) // better concurrency
-            .foreign_keys(true);                                 // enforce FK constraints
+            .foreign_keys(true); // enforce FK constraints
 
         let pool = SqlitePoolOptions::new()
             .max_connections(4)

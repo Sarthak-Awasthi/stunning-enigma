@@ -4,3 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+storage-sqlite = { workspace = true }
+anyhow         = { workspace = true }
+tracing        = { workspace = true }
+sqlx           = { workspace = true }
+
+[dev-dependencies]
+tokio          = { workspace = true }

@@ -1,14 +1,210 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use std::path::{Path, PathBuf};
+
+use anyhow::Context;
+use domain_core::{
+    entities::{Runner, RunnerKind},
+    error::DomainError,
+};
+use sqlx::Row;
+use storage_sqlite::Db;
+use tracing::{info, warn};
+
+#[derive(Debug)]
+struct RunnerCandidate {
+    kind: String,
+    version: String,
+    install_path: String,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub async fn detect_runners(db: &Db) -> anyhow::Result<()> {
+    let mut candidates = discover_proton_candidates()?;
+    candidates.extend(discover_wine_candidates());
+    let detected_count = candidates.len();
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    for candidate in candidates {
+        let existing_id: Option<i64> = sqlx::query_scalar(
+            "SELECT id FROM runner_catalog WHERE kind = ?1 AND install_path = ?2 LIMIT 1",
+        )
+        .bind(&candidate.kind)
+        .bind(&candidate.install_path)
+        .fetch_optional(&db.pool)
+        .await
+        .context("failed to query existing runner")?;
+
+        if let Some(id) = existing_id {
+            sqlx::query("UPDATE runner_catalog SET version = ?1, verified = 1 WHERE id = ?2")
+                .bind(&candidate.version)
+                .bind(id)
+                .execute(&db.pool)
+                .await
+                .context("failed to update runner")?;
+        } else {
+            sqlx::query(
+                r#"
+                INSERT INTO runner_catalog (kind, version, source_url, install_path, verified)
+                VALUES (?1, ?2, NULL, ?3, 1)
+                "#,
+            )
+            .bind(&candidate.kind)
+            .bind(&candidate.version)
+            .bind(&candidate.install_path)
+            .execute(&db.pool)
+            .await
+            .context("failed to insert runner")?;
+        }
+    }
+
+    info!(count = detected_count, "runner detection complete");
+    Ok(())
+}
+
+pub async fn list_runners(db: &Db) -> anyhow::Result<Vec<Runner>> {
+    let rows = sqlx::query(
+        r#"
+        SELECT id, kind, version, source_url, install_path, verified
+        FROM runner_catalog
+        ORDER BY kind, version
+        "#,
+    )
+    .fetch_all(&db.pool)
+    .await
+    .context("failed to list runners")?;
+
+    rows.into_iter().map(row_to_runner).collect()
+}
+
+pub async fn pin_profile_runner(profile_id: i64, runner_id: i64, db: &Db) -> anyhow::Result<()> {
+    let verified: Option<i64> =
+        sqlx::query_scalar("SELECT verified FROM runner_catalog WHERE id = ?1")
+            .bind(runner_id)
+            .fetch_optional(&db.pool)
+            .await
+            .context("failed to load runner")?;
+
+    let verified = match verified {
+        Some(v) => v != 0,
+        None => anyhow::bail!("runner {runner_id} was not found"),
+    };
+
+    if !verified {
+        return Err(DomainError::RunnerNotVerified.into());
+    }
+
+    let result = sqlx::query("UPDATE profiles SET pinned_runner_id = ?1 WHERE id = ?2")
+        .bind(runner_id)
+        .bind(profile_id)
+        .execute(&db.pool)
+        .await
+        .context("failed to pin runner to profile")?;
+
+    if result.rows_affected() == 0 {
+        anyhow::bail!("profile {profile_id} was not found");
+    }
+
+    info!(profile_id, runner_id, "runner pinned to profile");
+    Ok(())
+}
+
+fn row_to_runner(row: sqlx::sqlite::SqliteRow) -> anyhow::Result<Runner> {
+    let kind_raw: String = row.try_get("kind")?;
+    let kind = parse_kind(&kind_raw)?;
+    let verified: i64 = row.try_get("verified")?;
+
+    Ok(Runner {
+        id: row.try_get("id")?,
+        kind,
+        version: row.try_get("version")?,
+        source_url: row.try_get("source_url")?,
+        install_path: row.try_get("install_path")?,
+        verified: verified != 0,
+    })
+}
+
+fn parse_kind(kind: &str) -> anyhow::Result<RunnerKind> {
+    match kind {
+        "proton" => Ok(RunnerKind::Proton),
+        "wine" => Ok(RunnerKind::Wine),
+        other => anyhow::bail!("unknown runner kind in catalog: {other}"),
+    }
+}
+
+fn discover_proton_candidates() -> anyhow::Result<Vec<RunnerCandidate>> {
+    let home = std::env::var("HOME").context("HOME is not set")?;
+    let roots = [
+        PathBuf::from(&home).join(".steam/steam/steamapps/common"),
+        PathBuf::from(&home).join(".local/share/Steam/steamapps/common"),
+    ];
+
+    let mut found = Vec::new();
+
+    for root in roots {
+        if !root.exists() {
+            continue;
+        }
+
+        let entries = std::fs::read_dir(&root)
+            .with_context(|| format!("failed to read {}", root.display()))?;
+
+        for entry in entries {
+            let entry = entry?;
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.starts_with("Proton") {
+                continue;
+            }
+
+            found.push(RunnerCandidate {
+                kind: "proton".to_string(),
+                version: name,
+                install_path: path.display().to_string(),
+            });
+        }
+    }
+
+    Ok(found)
+}
+
+fn discover_wine_candidates() -> Vec<RunnerCandidate> {
+    let paths = ["/usr/bin/wine", "/bin/wine"];
+    let mut found = Vec::new();
+
+    for path in paths {
+        if !Path::new(path).exists() {
+            continue;
+        }
+
+        found.push(RunnerCandidate {
+            kind: "wine".to_string(),
+            version: read_wine_version(path),
+            install_path: path.to_string(),
+        });
+    }
+
+    found
+}
+
+fn read_wine_version(binary: &str) -> String {
+    let output = std::process::Command::new(binary).arg("--version").output();
+
+    match output {
+        Ok(out) if out.status.success() => {
+            let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if text.is_empty() {
+                "system".to_string()
+            } else {
+                text
+            }
+        }
+        Ok(_) | Err(_) => {
+            warn!(
+                binary,
+                "failed to detect wine version, defaulting to system"
+            );
+            "system".to_string()
+        }
     }
 }
