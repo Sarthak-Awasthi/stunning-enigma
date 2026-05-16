@@ -9,3 +9,4 @@ anyhow      = { workspace = true }
 thiserror   = { workspace = true }
 tracing     = { workspace = true }
 domain-core = { workspace = true }
+ipc-api     = { workspace = true }

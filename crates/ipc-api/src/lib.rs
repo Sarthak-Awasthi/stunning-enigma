@@ -13,6 +13,14 @@ pub enum Request {
         profile_id: i64,
         runner_id: i64,
     },
+    ListProfilePlugins {
+            profile_id: i64,
+        },
+        SetProfilePluginEnabled {
+            profile_id: i64,
+            plugin_id: i64,
+            enabled: bool,
+        },
     ListProfileMods {
         profile_id: i64,
     },
@@ -74,6 +82,9 @@ pub enum Request {
         profile_id: i64,
         use_f4se: bool,
     },
+    LaunchLauncher {
+        profile_id: i64,
+    },
     WriteLoadOrder {
         profile_id: i64,
     },
@@ -97,6 +108,14 @@ pub enum Response {
         profile_id: i64,
         runner_id: i64,
     },
+    ProfilePlugins {
+            profile_id: i64,
+            plugins: Vec<ProfilePluginInfo>,
+        },
+        ProfilePluginUpdated {
+            profile_id: i64,
+            plugin_id: i64,
+        },
     ProfileMods {
         profile_id: i64,
         mods: Vec<ProfileModInfo>,
@@ -195,4 +214,13 @@ pub enum ErrorCode {
     InvalidRequest,
     #[error("internal daemon error")]
     Internal,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ProfilePluginInfo {
+    pub plugin_id: i64,
+    pub filename: String,
+    pub kind: String,
+    pub enabled: bool,
+    pub load_index: i32,
 }

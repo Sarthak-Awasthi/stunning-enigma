@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use domain_core::{
@@ -131,41 +134,77 @@ fn parse_kind(kind: &str) -> anyhow::Result<RunnerKind> {
 fn discover_proton_candidates() -> anyhow::Result<Vec<RunnerCandidate>> {
     let home = std::env::var("HOME").context("HOME is not set")?;
     let roots = [
-        PathBuf::from(&home).join(".steam/steam/steamapps/common"),
-        PathBuf::from(&home).join(".local/share/Steam/steamapps/common"),
+        (
+            PathBuf::from(&home).join(".steam/steam/steamapps/common"),
+            true,
+        ),
+        (
+            PathBuf::from(&home).join(".local/share/Steam/steamapps/common"),
+            true,
+        ),
+        (
+            PathBuf::from(&home).join(".steam/steam/compatibilitytools.d"),
+            false,
+        ),
+        (
+            PathBuf::from(&home).join(".local/share/Steam/compatibilitytools.d"),
+            false,
+        ),
     ];
 
     let mut found = Vec::new();
+    let mut seen_paths = HashSet::new();
 
-    for root in roots {
-        if !root.exists() {
-            continue;
-        }
-
-        let entries = std::fs::read_dir(&root)
-            .with_context(|| format!("failed to read {}", root.display()))?;
-
-        for entry in entries {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_dir() {
-                continue;
-            }
-
-            let name = entry.file_name().to_string_lossy().to_string();
-            if !name.starts_with("Proton") {
-                continue;
-            }
-
-            found.push(RunnerCandidate {
-                kind: "proton".to_string(),
-                version: name,
-                install_path: path.display().to_string(),
-            });
-        }
+    for (root, require_proton_prefix) in roots {
+        scan_proton_root(&root, require_proton_prefix, &mut seen_paths, &mut found)?;
     }
 
     Ok(found)
+}
+
+fn scan_proton_root(
+    root: &Path,
+    require_proton_prefix: bool,
+    seen_paths: &mut HashSet<String>,
+    found: &mut Vec<RunnerCandidate>,
+) -> anyhow::Result<()> {
+    if !root.exists() {
+        return Ok(());
+    }
+
+    let entries =
+        std::fs::read_dir(root).with_context(|| format!("failed to read {}", root.display()))?;
+
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let name = entry.file_name().to_string_lossy().to_string();
+        if require_proton_prefix && !name.starts_with("Proton") {
+            continue;
+        }
+
+        if !path.join("proton").is_file() {
+            continue;
+        }
+
+        let canonical = std::fs::canonicalize(&path).unwrap_or(path);
+        let install_path = canonical.display().to_string();
+        if !seen_paths.insert(install_path.clone()) {
+            continue;
+        }
+
+        found.push(RunnerCandidate {
+            kind: "proton".to_string(),
+            version: name,
+            install_path,
+        });
+    }
+
+    Ok(())
 }
 
 fn discover_wine_candidates() -> Vec<RunnerCandidate> {
@@ -206,5 +245,61 @@ fn read_wine_version(binary: &str) -> String {
             );
             "system".to_string()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        fs,
+        sync::atomic::{AtomicU64, Ordering},
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    #[test]
+    fn steam_common_scan_requires_proton_prefix() {
+        let root = unique_temp_dir();
+        fs::create_dir_all(root.join("Proton 9.0")).expect("failed to create Proton dir");
+        fs::create_dir_all(root.join("GE-Proton9-24")).expect("failed to create GE dir");
+        fs::write(root.join("Proton 9.0/proton"), b"").expect("failed to create proton binary");
+        fs::write(root.join("GE-Proton9-24/proton"), b"").expect("failed to create proton binary");
+
+        let mut found = Vec::new();
+        let mut seen = HashSet::new();
+        scan_proton_root(&root, true, &mut seen, &mut found).expect("scan should succeed");
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].version, "Proton 9.0");
+        fs::remove_dir_all(root).expect("cleanup should succeed");
+    }
+
+    #[test]
+    fn compatibilitytools_scan_accepts_non_proton_prefix() {
+        let root = unique_temp_dir();
+        fs::create_dir_all(root.join("GE-Proton9-24")).expect("failed to create GE dir");
+        fs::create_dir_all(root.join("NotARunner")).expect("failed to create non-runner dir");
+        fs::write(root.join("GE-Proton9-24/proton"), b"").expect("failed to create proton binary");
+
+        let mut found = Vec::new();
+        let mut seen = HashSet::new();
+        scan_proton_root(&root, false, &mut seen, &mut found).expect("scan should succeed");
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].version, "GE-Proton9-24");
+        fs::remove_dir_all(root).expect("cleanup should succeed");
+    }
+
+    fn unique_temp_dir() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock must be after epoch")
+            .as_nanos();
+        let seq = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("mm-runner-manager-tests-{nonce}-{seq}"));
+        fs::create_dir_all(&dir).expect("failed to create temp dir");
+        dir
     }
 }

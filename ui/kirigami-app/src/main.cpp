@@ -6,10 +6,12 @@
 
 int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
+    QCoreApplication::setOrganizationName(QStringLiteral("ModManager"));
+    QCoreApplication::setOrganizationDomain(QStringLiteral("modmanager.local"));
+    QCoreApplication::setApplicationName(QStringLiteral("ModManager"));
+
     QQmlApplicationEngine engine;
     qmlRegisterType<IpcClient>("ModManager", 1, 0, "IpcClient");
-
-    const QUrl url(u"qrc:/qt/qml/ModManager/src/Main.qml"_qs);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,
@@ -18,6 +20,6 @@ int main(int argc, char *argv[]) {
         Qt::QueuedConnection
     );
 
-    engine.load(url);
+    engine.loadFromModule(QStringLiteral("ModManager"), QStringLiteral("Main"));
     return app.exec();
 }

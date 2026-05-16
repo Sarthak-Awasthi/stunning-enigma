@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Network Qml Quick)
-find_package(KF6 REQUIRED COMPONENTS Kirigami)
+find_package(KF6Kirigami REQUIRED)
 
 qt_standard_project_setup()
 

@@ -7,14 +7,14 @@ use anyhow::Context;
 use deploy_engine::{apply_plan, build_plan, rollback};
 use game_detect::{SteamDetector, validate_fo4_path};
 use ipc_api::{ErrorCode, ProfileInfo, ProfileModInfo, Request, Response, RunnerInfo};
-use launch_engine::{launch_game, preflight_launch};
+use launch_engine::{launch_game, launch_launcher, preflight_launch};
 use loot_engine::sort_profile_plugins;
 use mod_ingest::ingest_mod;
 use plugins_engine::{sync_plugins, validate_masters, write_load_order};
 use profile_fs::profile_dir;
 use runner_manager::{detect_runners, list_runners, pin_profile_runner};
 use storage_sqlite::{
-    Db, instance_repo::InstanceRepo, profile_mod_repo::ProfileModRepo, profile_repo::ProfileRepo,
+    Db, instance_repo::InstanceRepo, profile_mod_repo::ProfileModRepo, profile_repo::ProfileRepo, profile_plugin_repo::ProfilePluginRepo,
 };
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -419,6 +419,19 @@ async fn dispatch(line: &str, state: &AppState) -> Response {
             }
         }
 
+        Request::LaunchLauncher { profile_id } => {
+            info!(profile_id, "LaunchLauncher");
+            match launch_launcher(profile_id, &state.db).await {
+                Ok(result) => Response::GameLaunched {
+                    profile_id: result.profile_id,
+                    runner_kind: result.runner_kind,
+                    executable: result.executable,
+                    pid: result.pid,
+                },
+                Err(e) => err(e),
+            }
+        }
+
         Request::WriteLoadOrder { profile_id } => {
             info!(profile_id, "WriteLoadOrder");
             let dir = profile_dir(&state.data_dir, profile_id);
@@ -427,6 +440,24 @@ async fn dispatch(line: &str, state: &AppState) -> Response {
                 Err(e) => err(e),
             }
         }
+
+        Request::ListProfilePlugins { profile_id } => {
+                    info!(profile_id, "ListProfilePlugins");
+                    let repo = ProfilePluginRepo::new(&state.db.pool);
+                    match repo.list(profile_id).await {
+                        Ok(plugins) => Response::ProfilePlugins { profile_id, plugins },
+                        Err(e) => err(e),
+                    }
+                }
+        
+                Request::SetProfilePluginEnabled { profile_id, plugin_id, enabled } => {
+                    info!(profile_id, plugin_id, enabled, "SetProfilePluginEnabled");
+                    let repo = ProfilePluginRepo::new(&state.db.pool);
+                    match repo.set_enabled(profile_id, plugin_id, enabled).await {
+                        Ok(()) => Response::ProfilePluginUpdated { profile_id, plugin_id },
+                        Err(e) => err(e),
+                    }
+                }
     }
 }
 

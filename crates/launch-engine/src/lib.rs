@@ -125,6 +125,19 @@ pub async fn preflight_launch(
 }
 
 pub async fn launch_game(profile_id: i64, use_f4se: bool, db: &Db) -> anyhow::Result<LaunchResult> {
+    launch_internal(profile_id, use_f4se, false, db).await
+}
+
+pub async fn launch_launcher(profile_id: i64, db: &Db) -> anyhow::Result<LaunchResult> {
+    launch_internal(profile_id, false, true, db).await
+}
+
+async fn launch_internal(
+    profile_id: i64,
+    use_f4se: bool,
+    use_launcher: bool,
+    db: &Db,
+) -> anyhow::Result<LaunchResult> {
     let preflight = preflight_launch(profile_id, use_f4se, db).await?;
 
     let row = sqlx::query(
@@ -144,11 +157,16 @@ pub async fn launch_game(profile_id: i64, use_f4se: bool, db: &Db) -> anyhow::Re
     let runner_install_path: String = row.try_get("runner_install_path")?;
 
     let game_install_path = PathBuf::from(&preflight.game_install_path);
-    let executable = if use_f4se && preflight.f4se_available {
+    let executable = if use_launcher {
+        game_install_path.join("Fallout4Launcher.exe")
+    } else if use_f4se && preflight.f4se_available {
         game_install_path.join("f4se_loader.exe")
     } else {
         game_install_path.join("Fallout4.exe")
     };
+    if !executable.is_file() {
+        anyhow::bail!("launch executable not found at {}", executable.display());
+    }
 
     let mut command = match runner_kind.as_str() {
         "proton" => {

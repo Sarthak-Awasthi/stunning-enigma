@@ -2340,6 +2340,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "domain-core",
+ "ipc-api",
  "sqlx",
  "thiserror 1.0.69",
  "tracing",

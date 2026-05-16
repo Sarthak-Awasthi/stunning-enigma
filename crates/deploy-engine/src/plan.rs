@@ -1,5 +1,5 @@
 use anyhow::Context;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tracing::info;
 
 use domain_core::entities::SymlinkEntry;
@@ -69,7 +69,9 @@ pub async fn build_plan(
         .into_iter()
         .map(|w| SymlinkEntry {
             source: w.source_path,
-            target: game_data_dir.join(&w.rel_path).display().to_string(),
+            target: target_path_for_rel_path(game_data_dir, &w.rel_path)
+                .display()
+                .to_string(),
         })
         .collect();
 
@@ -77,4 +79,52 @@ pub async fn build_plan(
         profile_id,
         entries,
     })
+}
+
+fn target_path_for_rel_path(game_data_dir: &Path, rel_path: &str) -> PathBuf {
+    let rel = Path::new(rel_path);
+    if should_deploy_to_game_root(rel) {
+        if let Some(game_root) = game_data_dir.parent() {
+            return game_root.join(rel);
+        }
+    }
+    game_data_dir.join(rel)
+}
+
+fn should_deploy_to_game_root(rel_path: &Path) -> bool {
+    // F4SE loader/runtime files must live next to Fallout4.exe, not in Data/.
+    if rel_path.components().count() != 1 {
+        return false;
+    }
+
+    let file_name = rel_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+
+    file_name == "f4se_loader.exe"
+        || (file_name.starts_with("f4se_") && file_name.ends_with(".dll"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn f4se_loader_targets_game_root() {
+        let data_dir = Path::new("/games/fallout4/Data");
+        let target = target_path_for_rel_path(data_dir, "f4se_loader.exe");
+        assert_eq!(target, PathBuf::from("/games/fallout4/f4se_loader.exe"));
+    }
+
+    #[test]
+    fn regular_mod_file_targets_data_dir() {
+        let data_dir = Path::new("/games/fallout4/Data");
+        let target = target_path_for_rel_path(data_dir, "textures/foo.dds");
+        assert_eq!(
+            target,
+            PathBuf::from("/games/fallout4/Data/textures/foo.dds")
+        );
+    }
 }
