@@ -14,7 +14,7 @@ use plugins_engine::{sync_plugins, validate_masters, write_load_order};
 use profile_fs::profile_dir;
 use runner_manager::{detect_runners, list_runners, pin_profile_runner};
 use storage_sqlite::{
-    Db, instance_repo::InstanceRepo, profile_mod_repo::ProfileModRepo, profile_repo::ProfileRepo, profile_plugin_repo::ProfilePluginRepo,
+    Db, instance_repo::InstanceRepo, profile_env_repo::ProfileEnvRepo, profile_mod_repo::ProfileModRepo, profile_repo::ProfileRepo, profile_plugin_repo::ProfilePluginRepo,
 };
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -408,7 +408,16 @@ async fn dispatch(line: &str, state: &AppState) -> Response {
             use_f4se,
         } => {
             info!(profile_id, use_f4se, "LaunchGame");
-            match launch_game(profile_id, use_f4se, &state.db).await {
+            // Fetch profile environment variables
+            let env_repo = ProfileEnvRepo::new(&state.db.pool);
+            let env_vars = match env_repo.list(profile_id).await {
+                Ok(vars) => vars,
+                Err(e) => {
+                    warn!(profile_id, "failed to load env vars, continuing without them: {}", e);
+                    vec![]
+                }
+            };
+            match launch_game(profile_id, use_f4se, env_vars, &state.db).await {
                 Ok(result) => Response::GameLaunched {
                     profile_id: result.profile_id,
                     runner_kind: result.runner_kind,
@@ -421,7 +430,16 @@ async fn dispatch(line: &str, state: &AppState) -> Response {
 
         Request::LaunchLauncher { profile_id } => {
             info!(profile_id, "LaunchLauncher");
-            match launch_launcher(profile_id, &state.db).await {
+            // Fetch profile environment variables
+            let env_repo = ProfileEnvRepo::new(&state.db.pool);
+            let env_vars = match env_repo.list(profile_id).await {
+                Ok(vars) => vars,
+                Err(e) => {
+                    warn!(profile_id, "failed to load env vars, continuing without them: {}", e);
+                    vec![]
+                }
+            };
+            match launch_launcher(profile_id, env_vars, &state.db).await {
                 Ok(result) => Response::GameLaunched {
                     profile_id: result.profile_id,
                     runner_kind: result.runner_kind,
@@ -458,6 +476,36 @@ async fn dispatch(line: &str, state: &AppState) -> Response {
                         Err(e) => err(e),
                     }
                 }
+
+        Request::ListProfileEnvVars { profile_id } => {
+            info!(profile_id, "ListProfileEnvVars");
+            let repo = ProfileEnvRepo::new(&state.db.pool);
+            match repo.list(profile_id).await {
+                Ok(vars) => {
+                    let env_vars = vars.into_iter().map(|(key, value)| ipc_api::ProfileEnvVarInfo { key, value }).collect();
+                    Response::ProfileEnvVars { profile_id, env_vars }
+                }
+                Err(e) => err(e),
+            }
+        }
+
+        Request::SetProfileEnvVar { profile_id, key, value } => {
+            info!(profile_id, key, "SetProfileEnvVar");
+            let repo = ProfileEnvRepo::new(&state.db.pool);
+            match repo.set(profile_id, &key, &value).await {
+                Ok(()) => Response::Ok,
+                Err(e) => err(e),
+            }
+        }
+
+        Request::DeleteProfileEnvVar { profile_id, key } => {
+            info!(profile_id, key, "DeleteProfileEnvVar");
+            let repo = ProfileEnvRepo::new(&state.db.pool);
+            match repo.delete(profile_id, &key).await {
+                Ok(()) => Response::Ok,
+                Err(e) => err(e),
+            }
+        }
     }
 }
 

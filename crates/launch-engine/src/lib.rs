@@ -124,18 +124,28 @@ pub async fn preflight_launch(
     })
 }
 
-pub async fn launch_game(profile_id: i64, use_f4se: bool, db: &Db) -> anyhow::Result<LaunchResult> {
-    launch_internal(profile_id, use_f4se, false, db).await
+pub async fn launch_game(
+    profile_id: i64,
+    use_f4se: bool,
+    env_vars: Vec<(String, String)>,
+    db: &Db,
+) -> anyhow::Result<LaunchResult> {
+    launch_internal(profile_id, use_f4se, false, env_vars, db).await
 }
 
-pub async fn launch_launcher(profile_id: i64, db: &Db) -> anyhow::Result<LaunchResult> {
-    launch_internal(profile_id, false, true, db).await
+pub async fn launch_launcher(
+    profile_id: i64,
+    env_vars: Vec<(String, String)>,
+    db: &Db,
+) -> anyhow::Result<LaunchResult> {
+    launch_internal(profile_id, false, true, env_vars, db).await
 }
 
 async fn launch_internal(
     profile_id: i64,
     use_f4se: bool,
     use_launcher: bool,
+    env_vars: Vec<(String, String)>,
     db: &Db,
 ) -> anyhow::Result<LaunchResult> {
     let preflight = preflight_launch(profile_id, use_f4se, db).await?;
@@ -198,6 +208,12 @@ async fn launch_internal(
     };
 
     command.current_dir(&game_install_path);
+
+    // Apply custom environment variables
+    for (key, value) in env_vars {
+        command.env(&key, &value);
+    }
+
     let child = command.spawn().with_context(|| {
         format!(
             "failed to launch {} via {}",
