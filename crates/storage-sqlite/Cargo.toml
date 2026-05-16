@@ -1,0 +1,11 @@
+[package]
+name = "storage-sqlite"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sqlx        = { workspace = true }
+anyhow      = { workspace = true }
+thiserror   = { workspace = true }
+tracing     = { workspace = true }
+domain-core = { path = "../domain-core" }

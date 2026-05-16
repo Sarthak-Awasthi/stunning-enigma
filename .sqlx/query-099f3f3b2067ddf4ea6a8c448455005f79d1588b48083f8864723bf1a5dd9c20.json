@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT id, instance_id, name, pinned_runner_id, auto_deploy\n            FROM profiles\n            WHERE instance_id = ?1\n            ORDER BY created_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "instance_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "pinned_runner_id",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "auto_deploy",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "099f3f3b2067ddf4ea6a8c448455005f79d1588b48083f8864723bf1a5dd9c20"
+}

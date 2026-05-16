@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/domain-core",
+    "crates/storage-sqlite",
+    "crates/game-detect",
+    "crates/runner-manager",
+    "crates/mod-ingest",
+    "crates/deploy-engine",
+    "crates/plugins-engine",
+    "crates/loot-engine",
+    "crates/launch-engine",
+    "crates/ipc-api",
+    "crates/mm-daemon",
+]
+
+[workspace.dependencies]
+tokio              = { version = "1", features = ["full"] }
+serde              = { version = "1", features = ["derive"] }
+serde_json         = "1"
+tracing            = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow             = "1"
+thiserror          = "1"
+sqlx               = { version = "0.8", features = ["sqlite", "runtime-tokio-native-tls", "migrate"] }
+keyvalues-parser   = "0.2"
