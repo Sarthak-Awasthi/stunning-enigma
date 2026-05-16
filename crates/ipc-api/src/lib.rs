@@ -1,3 +1,13 @@
+//! IPC API definitions for the Mod Manager daemon.
+//!
+//! This crate defines the JSON-RPC style request/response protocol
+//! used for communication between the UI and the daemon.
+//!
+//! # Protocol
+//!
+//! Messages are newline-delimited JSON sent over a Unix socket.
+//! Each request has a corresponding response type.
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -197,14 +207,15 @@ pub enum Response {
 }
 
 /// Lightweight profile summary sent over IPC (no need for the full entity).
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ProfileInfo {
     pub id: i64,
     pub name: String,
     pub auto_deploy: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+/// Information about a compatibility runner.
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RunnerInfo {
     pub id: i64,
     pub kind: String,
@@ -213,7 +224,8 @@ pub struct RunnerInfo {
     pub verified: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+/// Information about a mod in a profile.
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ProfileModInfo {
     pub mod_id: i64,
     pub mod_name: String,
@@ -221,7 +233,8 @@ pub struct ProfileModInfo {
     pub priority: i32,
 }
 
-#[derive(Debug, Deserialize, Serialize, thiserror::Error)]
+/// Error codes returned by the daemon.
+#[derive(Debug, Clone, Deserialize, Serialize, thiserror::Error)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
     #[error("unknown method")]
@@ -232,7 +245,8 @@ pub enum ErrorCode {
     Internal,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+/// Information about a plugin in a profile.
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ProfilePluginInfo {
     pub plugin_id: i64,
     pub filename: String,
@@ -241,7 +255,8 @@ pub struct ProfilePluginInfo {
     pub load_index: i32,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+/// An environment variable associated with a profile.
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ProfileEnvVarInfo {
     pub key: String,
     pub value: String,
