@@ -9,10 +9,10 @@ use tokio::{
     net::UnixListener,
 };
 use tracing::{error, info, warn};
-
 use game_detect::{validate_fo4_path, SteamDetector};
 use ipc_api::{ErrorCode, ProfileInfo, Request, Response};
 use storage_sqlite::{profile_repo::ProfileRepo, Db};
+use mod_ingest::ingest_mod;
 
 const SOCKET_PATH: &str = "/tmp/mm-daemon.sock";
 
@@ -174,6 +174,19 @@ async fn dispatch(line: &str, state: &AppState) -> Response {
             let repo = ProfileRepo::new(&state.db.pool);
             match repo.delete(profile_id).await {
                 Ok(()) => Response::ProfileDeleted { profile_id },
+                Err(e) => err(e),
+            }
+        }
+
+        Request::IngestMod { archive_path } => {
+            info!(path = %archive_path, "IngestMod");
+            let mods_dir = state.data_dir.join("mods");
+            match ingest_mod(Path::new(&archive_path), &mods_dir, &state.db).await {
+                Ok(r) => Response::ModIngested {
+                    mod_id:     r.mod_id,
+                    name:       r.name,
+                    file_count: r.file_count,
+                },
                 Err(e) => err(e),
             }
         }

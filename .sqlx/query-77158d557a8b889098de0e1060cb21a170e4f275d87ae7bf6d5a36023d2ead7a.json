@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO file_index (mod_id, rel_path, is_ba2) VALUES (?1, ?2, ?3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "77158d557a8b889098de0e1060cb21a170e4f275d87ae7bf6d5a36023d2ead7a"
+}

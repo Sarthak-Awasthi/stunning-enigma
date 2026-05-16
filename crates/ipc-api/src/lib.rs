@@ -9,6 +9,7 @@ pub enum Request {
     CreateProfile  { instance_id: i64, name: String },
     ListProfiles   { instance_id: i64 },
     DeleteProfile  { profile_id: i64 },
+    IngestMod      { archive_path: String },     // ← new
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -19,6 +20,7 @@ pub enum Response {
     ProfileCreated { profile_id: i64 },
     ProfileList    { profiles: Vec<ProfileInfo> },
     ProfileDeleted { profile_id: i64 },
+    ModIngested    { mod_id: i64, name: String, file_count: usize },   // ← new
     Ok,
     Error          { code: ErrorCode, message: String },
 }
