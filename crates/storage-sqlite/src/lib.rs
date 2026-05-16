@@ -1,5 +1,6 @@
 pub mod instance_repo;
 pub mod migrations;
+pub mod profile_env_repo;
 pub mod profile_mod_repo;
 pub mod profile_repo;
 pub mod profile_plugin_repo;

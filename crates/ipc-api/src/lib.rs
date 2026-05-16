@@ -88,6 +88,18 @@ pub enum Request {
     WriteLoadOrder {
         profile_id: i64,
     },
+    ListProfileEnvVars {
+        profile_id: i64,
+    },
+    SetProfileEnvVar {
+        profile_id: i64,
+        key: String,
+        value: String,
+    },
+    DeleteProfileEnvVar {
+        profile_id: i64,
+        key: String,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -178,6 +190,10 @@ pub enum Response {
         code: ErrorCode,
         message: String,
     },
+    ProfileEnvVars {
+        profile_id: i64,
+        env_vars: Vec<ProfileEnvVarInfo>,
+    },
 }
 
 /// Lightweight profile summary sent over IPC (no need for the full entity).
@@ -223,4 +239,10 @@ pub struct ProfilePluginInfo {
     pub kind: String,
     pub enabled: bool,
     pub load_index: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ProfileEnvVarInfo {
+    pub key: String,
+    pub value: String,
 }
