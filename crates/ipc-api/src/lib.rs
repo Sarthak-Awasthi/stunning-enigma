@@ -9,7 +9,10 @@ pub enum Request {
     CreateProfile  { instance_id: i64, name: String },
     ListProfiles   { instance_id: i64 },
     DeleteProfile  { profile_id: i64 },
-    IngestMod      { archive_path: String },     // ← new
+    IngestMod      { archive_path: String },
+    DeployPreview  { profile_id: i64, game_data_dir: String },
+    DeployApply    { profile_id: i64, game_data_dir: String },
+    DeployRollback { manifest_id: i64 },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -20,7 +23,10 @@ pub enum Response {
     ProfileCreated { profile_id: i64 },
     ProfileList    { profiles: Vec<ProfileInfo> },
     ProfileDeleted { profile_id: i64 },
-    ModIngested    { mod_id: i64, name: String, file_count: usize },   // ← new
+    ModIngested    { mod_id: i64, name: String, file_count: usize },
+    DeployPreview  { profile_id: i64, entry_count: usize, entries: Vec<String> },
+    DeployApplied  { manifest_id: i64 },
+    RolledBack     { manifest_id: i64 },
     Ok,
     Error          { code: ErrorCode, message: String },
 }

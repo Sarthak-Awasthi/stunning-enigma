@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT symlink_plan FROM deploy_manifests WHERE id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "symlink_plan",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "36838f45510e3371d03b0816b9ce842477736775ece97d40c75f7767565a1b93"
+}

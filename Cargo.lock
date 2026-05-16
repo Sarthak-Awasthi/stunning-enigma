@@ -317,6 +317,18 @@ checksum = "ac6b926516df9c60bfa16e107b21086399f8285a44ca9711344b9e553c5146e2"
 [[package]]
 name = "deploy-engine"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "domain-core",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "storage-sqlite",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "walkdir",
+]
 
 [[package]]
 name = "der"

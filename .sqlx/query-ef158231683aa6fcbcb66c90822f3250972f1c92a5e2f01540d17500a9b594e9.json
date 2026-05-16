@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO deploy_manifests (profile_id, symlink_plan, status)\n        VALUES (?1, ?2, 'active')\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ef158231683aa6fcbcb66c90822f3250972f1c92a5e2f01540d17500a9b594e9"
+}

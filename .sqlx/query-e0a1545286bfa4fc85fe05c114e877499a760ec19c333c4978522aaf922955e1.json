@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT m.id, pm.priority, m.install_path\n        FROM profile_mods pm\n        JOIN mods m ON m.id = pm.mod_id\n        WHERE pm.profile_id = ?1 AND pm.enabled = 1\n        ORDER BY pm.priority ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "priority",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "install_path",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e0a1545286bfa4fc85fe05c114e877499a760ec19c333c4978522aaf922955e1"
+}

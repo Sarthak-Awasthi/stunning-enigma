@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT mod_id, rel_path FROM file_index WHERE mod_id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "mod_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "rel_path",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "cb52d3e410acbb394b34315927237dc3e4c85b225ab24e31a95bb1e4f97446c7"
+}

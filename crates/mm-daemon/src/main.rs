@@ -13,6 +13,7 @@ use game_detect::{validate_fo4_path, SteamDetector};
 use ipc_api::{ErrorCode, ProfileInfo, Request, Response};
 use storage_sqlite::{profile_repo::ProfileRepo, Db};
 use mod_ingest::ingest_mod;
+use deploy_engine::{apply_plan, build_plan, rollback};
 
 const SOCKET_PATH: &str = "/tmp/mm-daemon.sock";
 
@@ -187,6 +188,42 @@ async fn dispatch(line: &str, state: &AppState) -> Response {
                     name:       r.name,
                     file_count: r.file_count,
                 },
+                Err(e) => err(e),
+            }
+        }
+
+        Request::DeployPreview { profile_id, game_data_dir } => {
+            info!(profile_id, "DeployPreview");
+            match build_plan(profile_id, Path::new(&game_data_dir), &state.db).await {
+                Ok(plan) => {
+                    let entries = plan.entries.iter()
+                        .map(|e| format!("{} -> {}", e.source, e.target))
+                        .collect();
+                    Response::DeployPreview {
+                        profile_id,
+                        entry_count: plan.entries.len(),
+                        entries,
+                    }
+                }
+                Err(e) => err(e),
+            }
+        }
+        
+        Request::DeployApply { profile_id, game_data_dir } => {
+            info!(profile_id, "DeployApply");
+            match build_plan(profile_id, Path::new(&game_data_dir), &state.db).await {
+                Ok(plan) => match apply_plan(plan, &state.db).await {
+                    Ok(manifest_id) => Response::DeployApplied { manifest_id },
+                    Err(e) => err(e),
+                },
+                Err(e) => err(e),
+            }
+        }
+        
+        Request::DeployRollback { manifest_id } => {
+            info!(manifest_id, "DeployRollback");
+            match rollback(manifest_id, &state.db).await {
+                Ok(()) => Response::RolledBack { manifest_id },
                 Err(e) => err(e),
             }
         }
