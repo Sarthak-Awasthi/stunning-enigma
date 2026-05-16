@@ -1,5 +1,9 @@
 use thiserror::Error;
 
+/// Domain-specific errors for the Mod Manager.
+///
+/// These errors represent business logic violations and are distinct from
+/// technical errors like I/O or database failures.
 #[derive(Debug, Error)]
 pub enum DomainError {
     #[error("profile '{name}' already exists for this instance")]

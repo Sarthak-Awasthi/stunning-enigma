@@ -1,5 +1,12 @@
+//! Conflict resolution for mod deployments.
+//!
+//! This module implements priority-based conflict resolution:
+//! - Higher priority mods win file conflicts
+//! - When priorities are equal, higher mod_id wins (deterministic tiebreaker)
+
 use std::collections::HashMap;
 
+/// A winning file in conflict resolution.
 #[derive(Debug, Clone)]
 pub struct Winner {
     pub rel_path: String,
@@ -8,6 +15,20 @@ pub struct Winner {
     pub priority: i32,
 }
 
+/// Resolve file conflicts among enabled mods.
+///
+/// Given a list of (mod_id, priority, install_path) tuples and a file index
+/// of (mod_id, relative_path) pairs, determine which mod wins each file
+/// based on priority (higher wins) with mod_id as a deterministic tiebreaker.
+///
+/// # Arguments
+///
+/// * `mods` - Slice of (mod_id, priority, install_path) tuples
+/// * `file_index` - Slice of (mod_id, relative_path) pairs
+///
+/// # Returns
+///
+/// A vector of `Winner` entries, one for each unique file path.
 pub fn resolve(mods: &[(i64, i32, String)], file_index: &[(i64, String)]) -> Vec<Winner> {
     let mut best: HashMap<String, (i32, i64, String)> = HashMap::new();
 
