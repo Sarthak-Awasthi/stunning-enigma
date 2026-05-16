@@ -22,6 +22,30 @@ Kirigami.ApplicationWindow {
     ListModel { id: executablesModel }
     ListModel { id: modPriorityModel }
     ListModel { id: pluginsModel }
+    ListModel { id: envVarsModel }
+
+    // --- Profile Settings Dialog ---
+    ProfileSettingsDialog {
+        id: profileSettingsDialog
+        onEnvVarAdded: (key, value) => {
+            send("set_profile_env_var", {
+                profile_id: profileId,
+                key: key,
+                value: value
+            })
+        }
+        onEnvVarRemoved: (key) => {
+            send("delete_profile_env_var", {
+                profile_id: profileId,
+                key: key
+            })
+        }
+        
+        onOpened: {
+            // Load current env vars for this profile
+            send("list_profile_env_vars", { profile_id: profileId })
+        }
+    }
 
     // --- File Dialog for Mod Installation ---
     FileDialog {
@@ -84,6 +108,10 @@ Kirigami.ApplicationWindow {
                         text: "Configure"
                         ToolTip.text: "Profile Settings"
                         Layout.alignment: Qt.AlignVCenter
+                        onClicked: {
+                            profileSettingsDialog.profileId = root.currentProfileId()
+                            profileSettingsDialog.open()
+                        }
                     }
                 }
 
@@ -437,6 +465,17 @@ Kirigami.ApplicationWindow {
                     profile_id: root.currentProfileId(), 
                     use_f4se: useF4seCache 
                 });
+            }
+        }
+        else if (response.type === "profile_env_vars") {
+            envVarsModel.clear()
+            response.payload.env_vars.forEach(v => envVarsModel.append({
+                key: v.key,
+                value: v.value
+            }))
+            // Sync with dialog's internal model
+            if (profileSettingsDialog.visible) {
+                profileSettingsDialog.syncEnvVars(envVarsModel)
             }
         }
         else if (response.type === "error") {
